@@ -1,55 +1,18 @@
 import os
 import telebot
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
+from weasyprint import HTML, CSS
+from weasyprint.text.fonts import FontConfiguration
 
-# Railway ভেরিয়েবল থেকে টোকেন নিবে
+# Railway ভেরিয়েবল থেকে টোকেন
 BOT_TOKEN = os.environ.get('BOT_TOKEN') 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# ফন্ট রেজিস্টার ফাংশন
-def register_fonts():
-    try:
-        pdfmetrics.registerFont(TTFont('NotoBengali', 'NotoSerifBengali-Regular.ttf'))
-        pdfmetrics.registerFont(TTFont('NotoBengali-Bold', 'NotoSerifBengali-Regular.ttf'))
-    except:
-        print("Font file not found!")
-
-# PDF জেনারেট ফাংশন
 def generate_pdf(filename):
-    register_fonts()
-    doc = SimpleDocTemplate(filename, pagesize=A4, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
+    # প্রশ্ন এবং তথ্য
+    date = "৩০-১২-২০২৫"
+    dept = "মক্তব"
+    marks = "৫"
     
-    # স্টাইল তৈরি
-    normal_style = ParagraphStyle(name='Normal', fontName='NotoBengali', fontSize=11, leading=16)
-    bismillah_style = ParagraphStyle(name='Bismillah', fontName='NotoBengali-Bold', fontSize=14, alignment=1, spaceAfter=6)
-    org_name_style = ParagraphStyle(name='OrgName', fontName='NotoBengali-Bold', fontSize=16, alignment=1, spaceAfter=15)
-    question_style = ParagraphStyle(name='Question', fontName='NotoBengali', fontSize=12, leading=18, spaceAfter=8)
-
-    story = []
-
-    # হেডার
-    story.append(Paragraph("বিসমিল্লাহির রহমানির রহিম", bismillah_style))
-    story.append(Paragraph("কৃষ্ণরামপুর পূর্ব-পাড়া জামে মসজিদ", org_name_style))
-
-    # টেবিল
-    header_data = [[Paragraph("তারিখঃ ৩০-১২-২০২৫", normal_style), 
-                    Paragraph("বিভাগঃ মক্তব", normal_style), 
-                    Paragraph("প্রতি প্রশ্নের পূর্ণমানঃ ৫", normal_style)]]
-    t = Table(header_data, colWidths=[2*inch, 2*inch, 2.5*inch])
-    t.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                           ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                           ('LINEBELOW', (0,0), (-1,-1), 1, colors.black),
-                           ('BOTTOMPADDING', (0,0), (-1,-1), 10)]))
-    story.append(t)
-    story.append(Spacer(1, 20))
-
-    # প্রশ্ন
     questions = [
         "১। কালিমা তাইয়্যিবাহ অর্থসহ বল।",
         "২। কালিমা শাহাদাত বল।",
@@ -57,7 +20,7 @@ def generate_pdf(filename):
         "৪। কালিমা তামজীদ বল।",
         "৫। আরবী হরফ কয়টি ও কী কী?",
         "৬। মাখরাজ কয়টি? প্রথম তিনটি মাখরাজ বল।",
-        "৭। আরবী হরফে নোকতা কয়টি ও কী কী? (এক নোকতা, দুই নোকতা ও তিন নোকতা বিশিষ্ট হরফ)।",
+        "৭। আরবী হরফে নোকতা কয়টি ও কী কী? (এক নোকতা, দুই নোকতা...)।",
         "৮। নিজ পড়া থেকে ৫টি প্রশ্ন!",
         "৯। হরকত কাকে বলে ও কী কী?",
         "১০। মাদ্দের হরফ কয়টি ও কী কী?",
@@ -73,32 +36,103 @@ def generate_pdf(filename):
         "২০। আরবী বারো মাসের নাম বল।"
     ]
 
-    for q in questions:
-        story.append(Paragraph(q, question_style))
+    # HTML টেমপ্লেট তৈরি (CSS সহ)
+    # খেয়াল করুন: font-family তে আপনার ফন্ট ফাইলের নাম সঠিক হতে হবে
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            @font-face {{
+                font-family: 'NotoBengali';
+                src: url('NotoSerifBengali-Regular.ttf');
+            }}
+            body {{
+                font-family: 'NotoBengali', sans-serif;
+                padding: 40px;
+                font-size: 14px;
+            }}
+            .header {{
+                text-align: center;
+                margin-bottom: 20px;
+            }}
+            .bismillah {{
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            .org-name {{
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 15px;
+            }}
+            .info-table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 30px;
+                border-bottom: 1px solid black;
+            }}
+            .info-table td {{
+                padding: 5px;
+                text-align: center;
+                font-weight: bold;
+                padding-bottom: 10px;
+            }}
+            .question-list {{
+                list-style-type: none;
+                padding: 0;
+            }}
+            .question-item {{
+                margin-bottom: 10px;
+                font-size: 16px;
+                line-height: 1.6;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="bismillah">বিসমিল্লাহির রহমানির রহিম</div>
+            <div class="org-name">কৃষ্ণরামপুর পূর্ব-পাড়া জামে মসজিদ</div>
+        </div>
 
-    doc.build(story)
+        <table class="info-table">
+            <tr>
+                <td>তারিখঃ {date}</td>
+                <td>বিভাগঃ {dept}</td>
+                <td>প্রতি প্রশ্নের পূর্ণমানঃ {marks}</td>
+            </tr>
+        </table>
 
-# টেলিগ্রাম কমান্ড হ্যান্ডলার
+        <div class="question-list">
+            {''.join(f'<div class="question-item">{q}</div>' for q in questions)}
+        </div>
+    </body>
+    </html>
+    """
+
+    # HTML থেকে PDF তৈরি
+    # base_url='.' দেওয়ার কারণে সে বর্তমান ফোল্ডার থেকে ফন্ট খুঁজে নিবে
+    HTML(string=html_content, base_url='.').write_pdf(filename)
+
+# টেলিগ্রাম কমান্ড
 @bot.message_handler(commands=['exam'])
 def send_exam_pdf(message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "অপেক্ষা করুন, প্রশ্নপত্র তৈরি হচ্ছে...")
+    msg = bot.send_message(chat_id, "অপেক্ষা করুন, প্রশ্নপত্র তৈরি হচ্ছে...")
     
     file_name = "Islamic_Exam_Paper.pdf"
     
     try:
-        # PDF তৈরি করা
         generate_pdf(file_name)
         
-        # টেলিগ্রামে পাঠানো
         with open(file_name, 'rb') as doc_file:
             bot.send_document(chat_id, doc_file, caption="এই নিন আপনার প্রশ্নপত্র।")
             
-        # পাঠানোর পর সার্ভার থেকে ফাইল ডিলেট করা (অপশনাল)
+        bot.delete_message(chat_id, msg.message_id)
         os.remove(file_name)
         
     except Exception as e:
-        bot.send_message(chat_id, f"সমস্যা হয়েছে: {str(e)}")
+        bot.edit_message_text(f"সমস্যা হয়েছে: {str(e)}", chat_id, msg.message_id)
 
-print("Bot is running...")
+print("Bot started...")
 bot.infinity_polling()
