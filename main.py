@@ -1,21 +1,27 @@
 import os
-import threading
-import telebot
-from weasyprint import HTML
-from flask import Flask
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.types import FSInputFile, BufferedInputFile
+from weasyprint import HTML, CSS
+from weasyprint.text.fonts import FontConfiguration
 
 # --- কনফিগারেশন ---
-# Railway তে BOT_TOKEN ভেরিয়েবল সেট করা থাকতে হবে
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
+# Railway তে ভেরিয়েবল সেট করবেন অথবা এখানে সরাসরি টোকেন দিতে পারেন (নিরাপত্তার জন্য এনভায়রনমেন্ট ভেরিয়েবল ভালো)
+API_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 
-if not BOT_TOKEN:
-    print("Error: BOT_TOKEN is missing! Check Railway variables.")
+# ফন্ট কনফিগারেশন (ফন্ট ফাইলটি fonts ফোল্ডারে থাকতে হবে)
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'SolaimanLipi.ttf')
 
-bot = telebot.TeleBot(BOT_TOKEN)
-app = Flask(__name__)
+# লগিং চালু করা
+logging.basicConfig(level=logging.INFO)
 
-# --- PDF জেনারেটর ফাংশন ---
-def generate_pdf(filename):
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher()
+
+def generate_html_content():
+    # প্রশ্নের তালিকা
     questions = [
         "১। কালিমা তাইয়্যিবাহ অর্থসহ বল।",
         "২। কালিমা শাহাদাত বল।",
@@ -23,7 +29,7 @@ def generate_pdf(filename):
         "৪। কালিমা তামজীদ বল।",
         "৫। আরবী হরফ কয়টি ও কী কী?",
         "৬। মাখরাজ কয়টি? প্রথম তিনটি মাখরাজ বল।",
-        "৭। আরবী হরফে নোকতা কয়টি ও কী কী? (এক নোকতা, দুই নোকতা...)।",
+        "৭। আরবী হরফে নোকতা কয়টি ও কী কী? (এক নোকতা, দুই নোকতা ও তিন নোকতা বিশিষ্ট হরফ)।",
         "৮। নিজ পড়া থেকে ৫টি প্রশ্ন!",
         "৯। হরকত কাকে বলে ও কী কী?",
         "১০। মাদ্দের হরফ কয়টি ও কী কী?",
@@ -39,23 +45,57 @@ def generate_pdf(filename):
         "২০। আরবী বারো মাসের নাম বল।"
     ]
 
-    # HTML ডিজাইন
-    html_content = f"""
+    questions_html = "".join([f"<p class='question'>{q}</p>" for q in questions])
+
+    # HTML টেমপ্লেট
+    html_template = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="bn">
     <head>
+        <meta charset="UTF-8">
         <style>
             @font-face {{
-                font-family: 'NotoBengali';
-                src: url('NotoSerifBengali-Regular.ttf');
+                font-family: 'BanglaFont';
+                src: url('file://{FONT_PATH}');
             }}
-            body {{ font-family: 'NotoBengali', sans-serif; padding: 40px; font-size: 14px; }}
-            .header {{ text-align: center; margin-bottom: 20px; }}
-            .bismillah {{ font-size: 18px; font-weight: bold; margin-bottom: 5px; }}
-            .org-name {{ font-size: 22px; font-weight: bold; }}
-            .info-table {{ width: 100%; border-collapse: collapse; margin-top: 20px; border-bottom: 1px solid black; }}
-            .info-table td {{ text-align: center; padding: 5px; font-weight: bold; }}
-            .question-item {{ margin-bottom: 10px; }}
+            body {{
+                font-family: 'BanglaFont', sans-serif;
+                margin: 40px;
+                font-size: 14px;
+            }}
+            .header {{
+                text-align: center;
+                margin-bottom: 20px;
+            }}
+            .bismillah {{
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }}
+            .org-name {{
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 20px;
+            }}
+            .info-table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 5px;
+                font-size: 14px;
+            }}
+            .info-table td {{
+                padding: 5px;
+                vertical-align: top;
+            }}
+            .border-line {{
+                border-bottom: 2px solid #000;
+                margin-bottom: 20px;
+            }}
+            .question {{
+                margin-bottom: 10px;
+                font-size: 16px;
+                line-height: 1.6;
+            }}
         </style>
     </head>
     <body>
@@ -63,55 +103,55 @@ def generate_pdf(filename):
             <div class="bismillah">বিসমিল্লাহির রহমানির রহিম</div>
             <div class="org-name">কৃষ্ণরামপুর পূর্ব-পাড়া জামে মসজিদ</div>
         </div>
+
         <table class="info-table">
             <tr>
-                <td>তারিখঃ ৩০-১২-২০২৫</td>
-                <td>বিভাগঃ মক্তব</td>
-                <td>পূর্ণমানঃ ৫</td>
+                <td style="text-align: left; width: 33%;">তারিখঃ ৩০-১২-২০২৫</td>
+                <td style="text-align: center; width: 33%;">বিভাগঃ মক্তব</td>
+                <td style="text-align: right; width: 33%;">প্রতি প্রশ্নের পূর্ণমানঃ ৫</td>
             </tr>
         </table>
-        <br>
-        <div>
-            {''.join(f'<div class="question-item">{q}</div>' for q in questions)}
+        
+        <div class="border-line"></div>
+
+        <div class="content">
+            {questions_html}
         </div>
     </body>
     </html>
     """
-    
-    # PDF তৈরি
-    HTML(string=html_content, base_url='.').write_pdf(filename)
+    return html_template
 
-# --- টেলিগ্রাম হ্যান্ডলার ---
-@bot.message_handler(commands=['exam'])
-def send_exam_pdf(message):
-    chat_id = message.chat.id
-    msg = bot.send_message(chat_id, "অপেক্ষা করুন, প্রশ্নপত্র তৈরি হচ্ছে...")
-    filename = "Islamic_Exam.pdf"
+@dp.message(Command("start"))
+async def send_welcome(message: types.Message):
+    await message.reply("আসসালামু আলাইকুম। প্রশ্নপত্র পেতে /getpdf কমান্ডটি দিন।")
+
+@dp.message(Command("getpdf"))
+async def create_and_send_pdf(message: types.Message):
+    status_msg = await message.reply("⏳ প্রশ্নপত্র তৈরি হচ্ছে, দয়া করে অপেক্ষা করুন...")
     
     try:
-        generate_pdf(filename)
-        with open(filename, 'rb') as f:
-            bot.send_document(chat_id, f, caption="এই নিন আপনার প্রশ্নপত্র।")
-        bot.delete_message(chat_id, msg.message_id)
-        os.remove(filename)
+        # PDF জেনারেট করা
+        html_content = generate_html_content()
+        font_config = FontConfiguration()
+        
+        pdf_bytes = HTML(string=html_content).write_pdf(font_config=font_config)
+        
+        # টেলিগ্রামে পাঠানো
+        input_file = BufferedInputFile(pdf_bytes, filename="Islamic_Exam_Paper.pdf")
+        
+        await message.reply_document(
+            document=input_file,
+            caption="✅ আপনার প্রশ্নপত্র তৈরি হয়েছে। এটি প্রিন্ট করতে পারেন।"
+        )
+        await status_msg.delete()
+        
     except Exception as e:
-        bot.send_message(chat_id, f"Error: {str(e)}")
+        logging.error(f"Error: {e}")
+        await message.reply(f"দুঃখিত, সমস্যা হয়েছে: {str(e)}")
 
-# --- সার্ভার রান ---
-@app.route('/')
-def home():
-    return "Bot is running with Docker!"
+async def main():
+    await dp.start_polling(bot)
 
-def run_flask():
-    # Railway পোর্ট ভেরিয়েবল অটোমেটিক সেট করে
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-
-if __name__ == "__main__":
-    # Flask আলাদা থ্রেডে চালানো
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.start()
-    
-    # বট চালানো
-    print("Bot started...")
-    bot.infinity_polling()
+if __name__ == '__main__':
+    asyncio.run(main())
