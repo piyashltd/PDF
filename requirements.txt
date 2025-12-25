@@ -1,4 +1,5 @@
-pyTelegramBotAPI
+aiogram
 weasyprint
-flask
-cffi
+jinja2
+python-dotenv
+
