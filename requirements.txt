@@ -1,5 +1,4 @@
 pyTelegramBotAPI
 weasyprint
 flask
-gunicorn
-
+cffi
