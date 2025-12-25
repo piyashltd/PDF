@@ -11,7 +11,7 @@ from weasyprint.text.fonts import FontConfiguration
 API_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 
 # ফন্ট কনফিগারেশন (ফন্ট ফাইলটি fonts ফোল্ডারে থাকতে হবে)
-FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'SolaimanLipi.ttf')
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'fonts', 'NotoSerifBengali-Regular.ttf')
 
 # লগিং চালু করা
 logging.basicConfig(level=logging.INFO)
