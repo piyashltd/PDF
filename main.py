@@ -109,7 +109,7 @@ def generate_html_content():
     </head>
     <body>
         <div class="header">
-            <div class="bismillah">বিসমিল্লাহির রহমানির রহিম</div>
+            <div class="bismillah">বিসমিল্লাহির রাহমানির রাহিম</div>
             <div class="org-name">কৃষ্ণরামপুর পূর্ব-পাড়া জামে মসজিদ</div>
         </div>
 
