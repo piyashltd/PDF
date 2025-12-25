@@ -1,6 +1,8 @@
-FROM python:3.9-slim
+# আমরা python:3.9-slim এর বদলে python:3.9-slim-bullseye ব্যবহার করছি
+# Bullseye হলো Debian 11, যা খুব স্ট্যাবল এবং এখানে সব প্যাকেজ পাওয়া যায়।
+FROM python:3.9-slim-bullseye
 
-# WeasyPrint এর জন্য প্রয়োজনীয় সিস্টেম ডিপেন্ডেন্সি ইনস্টল করা
+# সিস্টেম ডিপেন্ডেন্সি ইনস্টল করা
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3-dev \
@@ -19,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 # ওয়ার্কিং ডিরেক্টরি সেট করা
 WORKDIR /app
 
-# ফাইল কপি করা
+# সব ফাইল কপি করা
 COPY . /app
 
 # পাইথন লাইব্রেরি ইনস্টল করা
