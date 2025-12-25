@@ -5,16 +5,17 @@ from weasyprint import HTML
 from flask import Flask
 
 # --- কনফিগারেশন ---
+# Railway তে BOT_TOKEN ভেরিয়েবল সেট করা থাকতে হবে
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+
 if not BOT_TOKEN:
-    print("Error: BOT_TOKEN not found!")
+    print("Error: BOT_TOKEN is missing! Check Railway variables.")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
 # --- PDF জেনারেটর ফাংশন ---
 def generate_pdf(filename):
-    # আপনার প্রশ্নগুলো
     questions = [
         "১। কালিমা তাইয়্যিবাহ অর্থসহ বল।",
         "২। কালিমা শাহাদাত বল।",
@@ -22,7 +23,7 @@ def generate_pdf(filename):
         "৪। কালিমা তামজীদ বল।",
         "৫। আরবী হরফ কয়টি ও কী কী?",
         "৬। মাখরাজ কয়টি? প্রথম তিনটি মাখরাজ বল।",
-        "৭। আরবী হরফে নোকতা কয়টি ও কী কী?",
+        "৭। আরবী হরফে নোকতা কয়টি ও কী কী? (এক নোকতা, দুই নোকতা...)।",
         "৮। নিজ পড়া থেকে ৫টি প্রশ্ন!",
         "৯। হরকত কাকে বলে ও কী কী?",
         "১০। মাদ্দের হরফ কয়টি ও কী কী?",
@@ -38,7 +39,7 @@ def generate_pdf(filename):
         "২০। আরবী বারো মাসের নাম বল।"
     ]
 
-    # HTML টেমপ্লেট (CSS সহ)
+    # HTML ডিজাইন
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -48,13 +49,13 @@ def generate_pdf(filename):
                 font-family: 'NotoBengali';
                 src: url('NotoSerifBengali-Regular.ttf');
             }}
-            body {{ font-family: 'NotoBengali', sans-serif; padding: 40px; }}
+            body {{ font-family: 'NotoBengali', sans-serif; padding: 40px; font-size: 14px; }}
             .header {{ text-align: center; margin-bottom: 20px; }}
-            .bismillah {{ font-size: 18px; font-weight: bold; }}
-            .org-name {{ font-size: 22px; font-weight: bold; margin-top: 5px; }}
+            .bismillah {{ font-size: 18px; font-weight: bold; margin-bottom: 5px; }}
+            .org-name {{ font-size: 22px; font-weight: bold; }}
             .info-table {{ width: 100%; border-collapse: collapse; margin-top: 20px; border-bottom: 1px solid black; }}
-            .info-table td {{ text-align: center; padding-bottom: 10px; font-weight: bold; }}
-            .question-item {{ margin-bottom: 8px; font-size: 15px; }}
+            .info-table td {{ text-align: center; padding: 5px; font-weight: bold; }}
+            .question-item {{ margin-bottom: 10px; }}
         </style>
     </head>
     <body>
@@ -77,12 +78,12 @@ def generate_pdf(filename):
     </html>
     """
     
-    # PDF তৈরি (base_url='.' দিলে ফন্ট ফাইল ফোল্ডার থেকে পাবে)
+    # PDF তৈরি
     HTML(string=html_content, base_url='.').write_pdf(filename)
 
-# --- বট কমান্ড ---
+# --- টেলিগ্রাম হ্যান্ডলার ---
 @bot.message_handler(commands=['exam'])
-def send_exam(message):
+def send_exam_pdf(message):
     chat_id = message.chat.id
     msg = bot.send_message(chat_id, "অপেক্ষা করুন, প্রশ্নপত্র তৈরি হচ্ছে...")
     filename = "Islamic_Exam.pdf"
@@ -96,19 +97,21 @@ def send_exam(message):
     except Exception as e:
         bot.send_message(chat_id, f"Error: {str(e)}")
 
-# --- সার্ভার সেটআপ (Railway এর জন্য) ---
+# --- সার্ভার রান ---
 @app.route('/')
-def index():
-    return "Bot is running!"
+def home():
+    return "Bot is running with Docker!"
 
-def run_bot():
-    bot.infinity_polling()
-
-if __name__ == "__main__":
-    # বটকে আলাদা থ্রেডে চালানো হচ্ছে
-    t = threading.Thread(target=run_bot)
-    t.start()
-    
-    # Flask অ্যাপ রান করা (Railway এর PORT ভেরিয়েবল ব্যবহার করবে)
+def run_flask():
+    # Railway পোর্ট ভেরিয়েবল অটোমেটিক সেট করে
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    # Flask আলাদা থ্রেডে চালানো
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+    
+    # বট চালানো
+    print("Bot started...")
+    bot.infinity_polling()
